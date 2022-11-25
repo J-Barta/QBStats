@@ -2,13 +2,10 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.interactions.Action;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.interactions.PointerInput;
 import org.openqa.selenium.interactions.Sequence;
-import org.openqa.selenium.remote.RemoteWebDriver;
 
-import java.sql.Array;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +16,8 @@ public class WebController {
     private ChromeDriver driver;
 
     private int setID;
+
+    private int[] currentIndices;
 
     public WebController(int setID) {
         this.setID = setID;
@@ -44,6 +43,7 @@ public class WebController {
                 List<WebElement> stats = statTable.findElements(By.tagName("li"));
 
                 System.out.println("Tournament " + (tournamentId+1) + " / " + links.size() + ": Select stats for: " + linkText);
+                System.out.println("Separate by commas to use multiple");
                 int index = 0;
                 for (WebElement e : stats) {
                     index++;
@@ -53,25 +53,48 @@ public class WebController {
 
                 String statChoice = inputScanner.nextLine();  // Read user input
 
-                WebElement selectedStats = stats.get(Integer.valueOf(statChoice) - 1).findElement(By.tagName("a"));
-
-                openLink(selectedStats);
-
-                List<WebElement> statTables = ((WebElement) js.executeScript("return document.querySelector(\"body > div > div.OverallBody > div.ContentContainer\")"))
-                        .findElements(By.tagName("table"));
-
-                //Reject index 0 in the list because it's a header
-                for (int i = 1; i < statTables.size(); i++) {
-                    List<WebElement> rows = statTables.get(i).findElement(By.tagName("tbody")).findElements(By.tagName("tr"));
-
-                    //Reject index 0 because it's a header again
-                    for (int t = 1; t < rows.size(); t++) {
-                        List<WebElement> rowData = rows.get(t).findElements(By.tagName("td"));
-                        teamStats.add(getStats(rowData, rows.get(0).findElements(By.tagName("td"))));
-                    }
+                int[] parsedChoices = parseStatChoice(statChoice);
+                List<WebElement> selectedStatsList = new ArrayList<>();
+                for(int choice : parsedChoices) {
+                    selectedStatsList.add(stats.get(choice -1)); //-1 because zero indexed
                 }
 
-                backClick();
+                Map<String, TeamStats> tournamentStats = new HashMap<>();
+
+
+                for(WebElement selectedStats : selectedStatsList) {
+                    openLink(selectedStats.findElement(By.tagName("a")));
+
+
+                    List<WebElement> statTables = ((WebElement) js.executeScript("return document.querySelector(\"body > div > div.OverallBody > div.ContentContainer\")"))
+                            .findElements(By.tagName("table"));
+
+                    //Reject index 0 in the list because it's a header
+                    for (int i = 1; i < statTables.size(); i++) {
+                        List<WebElement> rows = statTables.get(i).findElement(By.tagName("tbody")).findElements(By.tagName("tr"));
+
+                        currentIndices = indices(rows.get(0).findElements(By.tagName("td")));
+
+                        //Reject index 0 because it's a header again
+                        for (int t = 1; t < rows.size(); t++) {
+                            List<WebElement> rowData = rows.get(t).findElements(By.tagName("td"));
+                            TeamStats currentStats = getStats(rowData);
+
+                            //Either add this team's stats to the tournament stats, or append this stat sheet's team data to the existing team data
+                            if(tournamentStats.get(currentStats.getName()) != null) {
+                                tournamentStats.get(currentStats.getName()).combineWith(currentStats);
+                            }else tournamentStats.put(currentStats.getName(), currentStats);
+                        }
+                    }
+
+                    backClick();
+                }
+
+                for(TeamStats team : tournamentStats.values()) {
+                    teamStats.add(team);
+                }
+            } else {
+                System.out.println("Tournament " + (tournamentId+1) + " / " + links.size() + ": NO STATS for: " + linkText);
             }
 
             backClick();
@@ -83,19 +106,76 @@ public class WebController {
         return teamStats;
     }
 
-    private TeamStats getStats(List<WebElement> teamData, List<WebElement> header) {
-        int[] indices = indices(header);
+    private int[] parseStatChoice(String input) {
+        int count = 0;
 
-        return new TeamStats(
-                teamData.get(indices[0]).findElement(By.tagName("a")).getText(),
-                Double.valueOf(teamData.get(indices[1]).getText()),
-                Double.valueOf(teamData.get(indices[2]).getText()),
-                Double.valueOf(teamData.get(indices[3]).getText()),
-                Double.valueOf(teamData.get(indices[4]).getText()),
-                Double.valueOf(teamData.get(indices[5]).getText()) +
-                        Double.valueOf(teamData.get(indices[6]).getText())
-        );
+        for (int i = 0; i < input.length(); i++) {
+            if (input.charAt(i) == ',') {
+                count++;
+            }
+        }
+        count++;
+
+        String sub = input;
+
+        int[] parsed = new int[count];
+        for(int i=0; i<count; i++) {
+            parsed[i] = Integer.valueOf(sub.substring(0, 1));
+            if(sub.length() >= 2) sub = sub.substring(2);
+        }
+
+        return parsed;
     }
+
+    private TeamStats getStats(List<WebElement> teamData) {
+        try {
+            return new TeamStats(
+                    teamData.get(currentIndices[0]).findElement(By.tagName("a")).getText(),
+                    Double.valueOf(teamData.get(currentIndices[1]).getText()),
+                    Double.valueOf(teamData.get(currentIndices[2]).getText()),
+                    Double.valueOf(teamData.get(currentIndices[3]).getText()),
+                    Double.valueOf(teamData.get(currentIndices[4]).getText()),
+                    Double.valueOf(teamData.get(currentIndices[5]).getText()) +
+                            Double.valueOf(teamData.get(currentIndices[6]).getText())
+            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            System.out.println("Automatic stat collection failed! ;-;");
+            System.out.println("Please enter indices manually (starting from zero)");
+
+            getStatIndicesManually();
+
+            return getStats(teamData);
+        }
+    }
+
+    /**
+     * Mutates the array of indices based on inputs from the terminal
+     */
+    private void getStatIndicesManually() {
+
+        Scanner input = new Scanner(System.in);
+
+        currentIndices = new int[7];
+        System.out.println("Index of team name");
+        currentIndices[0] = input.nextInt();
+        System.out.println("Index of PPG");
+        currentIndices[1] = input.nextInt();
+        System.out.println("Index of Powers");
+        currentIndices[2] = input.nextInt();
+        System.out.println("Index of Regs");
+        currentIndices[3] = input.nextInt();
+        System.out.println("Index of PPB");
+        currentIndices[4] = input.nextInt();
+        System.out.println("Index of Wins");
+        currentIndices[5] = input.nextInt();
+        System.out.println("Index of Losses");
+        currentIndices[6] = input.nextInt();
+    }
+
 
     private int[] indices(List<WebElement> header) {
         int[] indices = new int[7];
@@ -116,6 +196,7 @@ public class WebController {
                     indices[3] = i;
                     break;
                 case "PPB":
+                case "P/B":
                     indices[4] = i;
                     break;
                 case "W":
@@ -160,13 +241,15 @@ public class WebController {
         driver.perform(Collections.singletonList(actions));
     }
 
-    public void openPage() {
+    public String openPage() {
         System.setProperty("webdriver.chrome.driver", "C:\\Program Files\\WordleBot\\chromedriver.exe");
         driver = new ChromeDriver();
         driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
 
-        js =  (JavascriptExecutor) driver;
+        js = driver;
 
         driver.get("https://hsquizbowl.org/db/questionsets/" + setID + "/");
+
+        return ((WebElement) js.executeScript("return document.querySelector(\"body > div > div.OverallBody > div.ContentContainer > div.MainColumn > div.First > h2\")")).getText();
     }
 }
