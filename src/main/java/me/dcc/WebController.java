@@ -1,3 +1,5 @@
+package me.dcc;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
@@ -141,9 +143,9 @@ public class WebController {
 
         } catch (Exception e) {
 
-            e.printStackTrace();
+//            e.printStackTrace();
 
-            System.out.println("Automatic stat collection failed! ;-;");
+            System.out.println("Automatic stat collection failed!");
             System.out.println("Please enter indices manually (starting from zero)");
 
             getStatIndicesManually();
@@ -241,15 +243,19 @@ public class WebController {
         driver.perform(Collections.singletonList(actions));
     }
 
-    public String openPage() {
-        System.setProperty("webdriver.chrome.driver", "C:\\Program Files\\WordleBot\\chromedriver.exe");
+    public String openPage(String driverPath) {
+        System.setProperty("webdriver.chrome.driver", driverPath);
         driver = new ChromeDriver();
-        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
         js = driver;
 
         driver.get("https://hsquizbowl.org/db/questionsets/" + setID + "/");
 
         return ((WebElement) js.executeScript("return document.querySelector(\"body > div > div.OverallBody > div.ContentContainer > div.MainColumn > div.First > h2\")")).getText();
+    }
+
+    public void close() {
+        driver.quit();
     }
 }

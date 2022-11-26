@@ -1,3 +1,5 @@
+package me.dcc;
+
 public class TeamStats {
     private String name;
     private double ppg;

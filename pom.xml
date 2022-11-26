@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.example</groupId>
+    <groupId>me.dcc</groupId>
     <artifactId>QBStats</artifactId>
     <version>1.0-SNAPSHOT</version>
 
@@ -30,7 +30,7 @@
                 <configuration>
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                            <mainClass>me.Jedi.Main</mainClass>
+                            <mainClass>me.dcc.Main</mainClass>
                         </transformer>
                     </transformers>
                 </configuration>
