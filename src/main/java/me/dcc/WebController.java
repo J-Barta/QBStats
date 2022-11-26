@@ -52,8 +52,12 @@ public class WebController {
                     System.out.println(index + ": " + e.getText());
                 }
 
-
-                String statChoice = inputScanner.nextLine();  // Read user input
+                String statChoice;
+                if(stats.size() > 1) {
+                    statChoice = inputScanner.nextLine();  // Read user input
+                } else {
+                    statChoice = "1";
+                }
 
                 int[] parsedChoices = parseStatChoice(statChoice);
                 List<WebElement> selectedStatsList = new ArrayList<>();
