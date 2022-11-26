@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>me.dcc</groupId>
   <artifactId>QBStats</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>0.9-beta</version>
   <build>
     <plugins>
       <plugin>

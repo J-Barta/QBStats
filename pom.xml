@@ -6,7 +6,7 @@
 
     <groupId>me.dcc</groupId>
     <artifactId>QBStats</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.9-beta</version>
 
     <properties>
         <maven.compiler.source>16</maven.compiler.source>
@@ -43,7 +43,6 @@
                     </execution>
                 </executions>
             </plugin>
-
 
         </plugins>
     </build>
