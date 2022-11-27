@@ -3,12 +3,7 @@ package me.dcc;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Main {
 
@@ -19,9 +14,9 @@ public class Main {
 
         //Copy file to desktop folder
         String driverPath = "C:\\Users\\" + userName + "\\Desktop\\QBStats\\";
-        new File(driverPath).mkdirs();
-        new File(driverPath + "chromedriver.exe").delete();
-        boolean success = copy(Main.class.getResourceAsStream("/chromedriver.exe"), driverPath + "chromedriver.exe");
+        new File(driverPath).mkdirs(); //Create the directory for the path if needed
+        new File(driverPath + "chromedriver.exe").delete(); //Delete a chromedriver if present
+        boolean success = FileUtils.copy(Main.class.getResourceAsStream("/chromedriver.exe"), driverPath + "chromedriver.exe");
 
         if(!success) {
             System.out.println("Failed to copy chrome driver to the desktop!");
@@ -30,6 +25,7 @@ public class Main {
 
         Scanner input = new Scanner(System.in);
         System.out.println("Please enter the ID of the question set from hsquizbowl.org");
+
         int setID = Integer.valueOf(input.nextLine());
 
         WebController controller = new WebController(setID);
@@ -58,54 +54,16 @@ public class Main {
             );
         }
 
-        writeToFile(outputData, driverPath, setName);
+        FileUtils.writeToFile(outputData, driverPath, setName);
 
         System.out.println("csv file saved successfully!");
 
-        controller.close();
+        controller.quit();
 
         System.out.println("Chrome window closed. Goodbye.");
 
         //Delete chromedriver
         new File(driverPath + "chromedriver.exe").delete();
-    }
-
-    /**
-     * Copy a file from source to destination.
-     *
-     * @param source
-     *        the source
-     * @param destination
-     *        the destination
-     * @return True if succeeded , False if not
-     */
-    public static boolean copy(InputStream source , String destination) {
-        boolean succeess = true;
-
-
-        try {
-            Files.copy(source, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ex) {
-            succeess = false;
-        }
-
-        return succeess;
-
-    }
-
-    public static String convertToCSV(String[] data) {
-        return Stream.of(data)
-                .collect(Collectors.joining(","));
-    }
-
-    public static void writeToFile(List<String[]> data, String path, String fileName) throws FileNotFoundException {
-        String filePath = path + fileName + ".csv";
-        File csvOutputFile = new File(filePath);
-        try (PrintWriter pw = new PrintWriter(csvOutputFile)) {
-            data.stream()
-                    .map((e) -> convertToCSV(e))
-                    .forEach(pw::println);
-        }
     }
 
     private static double round(double value, int places) {

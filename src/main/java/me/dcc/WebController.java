@@ -10,7 +10,6 @@ import org.openqa.selenium.interactions.Sequence;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class WebController {
@@ -30,21 +29,21 @@ public class WebController {
 
         Scanner inputScanner = new Scanner(System.in);  // Create a Scanner object
 
-        List<WebElement> links = getLinks();
+        List<WebElement> links = getTournamentLinks(); //Generate list of tournament links
 
         for(int tournamentId = 0; tournamentId<links.size(); tournamentId++) {
-            links = getLinks();
-            WebElement link = links.get(tournamentId);
-            String linkText = link.getText();
-            openLink(link);
+            links = getTournamentLinks(); //Regenerate the list of tournament links because they will be invalid after page reload
 
+            WebElement link = links.get(tournamentId);
+            String tournamentName = link.getText();
+            openLink(link);
 
             WebElement statTable = ((WebElement) js.executeScript("return document.querySelector(\"#Stats > div > ul\")"));
 
             if(statTable != null) {
                 List<WebElement> stats = statTable.findElements(By.tagName("li"));
 
-                System.out.println("Tournament " + (tournamentId+1) + " / " + links.size() + ": Select stats for: " + linkText);
+                System.out.println("Tournament " + (tournamentId+1) + " / " + links.size() + ": Select stats for: " + tournamentName);
                 System.out.println("Separate by commas to use multiple");
                 int index = 0;
                 for (WebElement e : stats) {
@@ -56,7 +55,7 @@ public class WebController {
                 if(stats.size() > 1) {
                     statChoice = inputScanner.nextLine();  // Read user input
                 } else {
-                    statChoice = "1";
+                    statChoice = "1"; //Default to selecting only the first stat table if there only is one
                 }
 
                 int[] parsedChoices = parseStatChoice(statChoice);
@@ -93,17 +92,17 @@ public class WebController {
                         }
                     }
 
-                    backClick();
+                    goBack();
                 }
 
                 for(TeamStats team : tournamentStats.values()) {
                     teamStats.add(team);
                 }
             } else {
-                System.out.println("Tournament " + (tournamentId+1) + " / " + links.size() + ": NO STATS for: " + linkText);
+                System.out.println("Tournament " + (tournamentId+1) + " / " + links.size() + ": NO STATS for: " + tournamentName);
             }
 
-            backClick();
+            goBack();
         }
 
         //Sort the stats of the various teams
@@ -147,8 +146,6 @@ public class WebController {
 
         } catch (Exception e) {
 
-//            e.printStackTrace();
-
             System.out.println("Automatic stat collection failed!");
             System.out.println("Please enter indices manually (starting from zero)");
 
@@ -183,6 +180,11 @@ public class WebController {
     }
 
 
+    /**
+     * automatically collect indices of specific stats from the stat sheet
+     * @param header the table header of the stat sheet
+     * @return indices of each stat
+     */
     private int[] indices(List<WebElement> header) {
         int[] indices = new int[7];
         for(int i = 0; i< header.size(); i++) {
@@ -217,7 +219,7 @@ public class WebController {
         return indices;
     }
 
-    private List<WebElement> getLinks() {
+    private List<WebElement> getTournamentLinks() {
         WebElement mainColumn = (WebElement) js.executeScript("return document.querySelector(\"body > div > div.OverallBody > div.ContentContainer > div.MainColumn > div.Subsequent\")");
 
         List<List<WebElement>> tournaments = mainColumn.findElements(By.className("Tournaments")).stream().map((e) -> e.findElements(By.tagName("li"))).collect(Collectors.toList());
@@ -232,12 +234,18 @@ public class WebController {
         return links;
     }
 
+    /**
+     * Open a new link and wait for 250 ms for the page to laod
+     * @param link the link to follow
+     */
     private void openLink(WebElement link) {
         new Actions(driver).click(link).pause(Duration.ofMillis(250)).perform();
     }
 
-
-    private void backClick() {
+    /**
+     * Go back to the previous page
+     */
+    private void goBack() {
         PointerInput mouse = new PointerInput(PointerInput.Kind.MOUSE, "default mouse");
 
         Sequence actions = new Sequence(mouse, 0)
@@ -247,6 +255,11 @@ public class WebController {
         driver.perform(Collections.singletonList(actions));
     }
 
+    /**
+     * Open the page on hsquizbowl for the selected set
+     * @param driverPath absolute path of the chromedriver
+     * @return name of the question set
+     */
     public String openPage(String driverPath) {
         System.setProperty("webdriver.chrome.driver", driverPath);
         driver = new ChromeDriver();
@@ -259,7 +272,7 @@ public class WebController {
         return ((WebElement) js.executeScript("return document.querySelector(\"body > div > div.OverallBody > div.ContentContainer > div.MainColumn > div.First > h2\")")).getText();
     }
 
-    public void close() {
+    public void quit() {
         driver.quit();
     }
 }

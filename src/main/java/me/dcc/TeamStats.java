@@ -30,7 +30,7 @@ public class TeamStats {
 
     /**
      * Combine the stats of a team with their stats from another part of the tournament (prelims, etc)
-     * @param other
+     * @param other team data from the other sheet
      */
     public void combineWith(TeamStats other) {
         this.ppg = (this.ppg * this.gamesPlayed + other.ppg * other.gamesPlayed)/ (this.gamesPlayed + other.gamesPlayed);
@@ -48,21 +48,17 @@ public class TeamStats {
 
     public double getPowersPerGame() {
         return powers/gamesPlayed;
-//                Math.round((powers/gamesPlayed) * 10)/10;
     }
 
     public double getsPerGame() {
         return gets/gamesPlayed;
-                //Math.round((gets/gamesPlayed) * 10)/10;
     }
 
     public double getPpg() {
         return ppg;
-                //Math.round(ppg * 10)/10;
     }
 
     public double getPpb() {
         return ppb;
-                //Math.round(ppb * 10)/10;
     }
 }
